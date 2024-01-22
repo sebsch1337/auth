@@ -1,3 +1,5 @@
+// To get the session CLIEJNT-SIDE (client components)
+
 import { useSession } from "next-auth/react";
 
 export const useCurrentUser = () => {
