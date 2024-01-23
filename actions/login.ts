@@ -1,22 +1,23 @@
 "use server";
 
-import { z } from "zod";
+import * as z from "zod";
 import { AuthError } from "next-auth";
 
 import { signIn } from "@/auth";
+
 import { LoginSchema } from "@/schemas";
+
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
 import { db } from "@/lib/db";
-import { sendVerificationEmail, sendTwoFactorEmail } from "@/lib/mail";
+import { sendVerificationEmail, sendTwoFactorTokenEmail } from "@/lib/mail";
 import { generateVerificationToken, generateTwoFactorToken } from "@/lib/tokens";
 
 import { getUserByEmail } from "@/data/user";
 import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
 
-export const login = async (values: z.infer<typeof LoginSchema>) => {
-	// Serverside data validation
+export const login = async (values: z.infer<typeof LoginSchema>, callbackUrl?: string | null) => {
 	const validatedFields = LoginSchema.safeParse(values);
 
 	if (!validatedFields.success) {
@@ -36,7 +37,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 
 		await sendVerificationEmail(verificationToken.email, verificationToken.token);
 
-		return { success: "Confirmation Email sent!" };
+		return { success: "Confirmation email sent!" };
 	}
 
 	if (existingUser.isTwoFactorEnabled && existingUser.email) {
@@ -76,7 +77,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 			});
 		} else {
 			const twoFactorToken = await generateTwoFactorToken(existingUser.email);
-			await sendTwoFactorEmail(twoFactorToken.email, twoFactorToken.token);
+			await sendTwoFactorTokenEmail(twoFactorToken.email, twoFactorToken.token);
 
 			return { twoFactor: true };
 		}
@@ -86,7 +87,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 		await signIn("credentials", {
 			email,
 			password,
-			redirectTo: DEFAULT_LOGIN_REDIRECT,
+			redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
 		});
 	} catch (error) {
 		if (error instanceof AuthError) {

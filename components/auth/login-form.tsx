@@ -22,6 +22,7 @@ import Link from "next/link";
 export const LoginForm = () => {
 	const searchParams = useSearchParams();
 	const urlError = searchParams.get("error") === "OAuthAccountNotLinked" ? "Email already in use!" : "";
+	const callbackUrl = searchParams.get("callbackUrl");
 
 	const [showTwoFactor, setShowTwoFactor] = useState(false);
 	const [error, setError] = useState<string | undefined>("");
@@ -41,7 +42,7 @@ export const LoginForm = () => {
 		setSuccess("");
 
 		startTransition(() => {
-			login(values)
+			login(values, callbackUrl)
 				.then((data) => {
 					if (data?.error) {
 						form.reset();
