@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 
-import { getUserByEmail } from "@/data/user";
+import { getUserByEmail, getUserByPendingEmail } from "@/data/user";
 import { getVerificationTokenByToken } from "@/data/verification-token";
 
 export const newVerification = async (token: string) => {
@@ -18,7 +18,7 @@ export const newVerification = async (token: string) => {
 		return { error: "Token has expired!" };
 	}
 
-	const existingUser = await getUserByEmail(existingToken.email);
+	const existingUser = (await getUserByEmail(existingToken.email)) || (await getUserByPendingEmail(existingToken.email));
 
 	if (!existingUser) {
 		return { error: "Email does not exist!" };
@@ -29,6 +29,7 @@ export const newVerification = async (token: string) => {
 		data: {
 			emailVerified: new Date(),
 			email: existingToken.email,
+			pendingEmail: null,
 		},
 	});
 

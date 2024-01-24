@@ -17,3 +17,12 @@ export const getUserById = async (id: string) => {
 		return null;
 	}
 };
+
+export const getUserByPendingEmail = async (email: string) => {
+	try {
+		const user = await db.user.findFirst({ where: { pendingEmail: email } });
+		return user;
+	} catch {
+		return null;
+	}
+};
