@@ -6,7 +6,7 @@ import { update } from "@/auth";
 
 import { SettingsSchema } from "@/schemas";
 
-import { getUserByEmail, getUserById } from "@/data/user";
+import { getUserByEmail, getUserById, getUserByPendingEmail } from "@/data/user";
 
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
@@ -14,6 +14,7 @@ import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
 
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 export const settings = async (values: z.infer<typeof SettingsSchema>) => {
 	const user = await currentUser();
@@ -36,7 +37,7 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
 	}
 
 	if (values.email && values.email !== user.email) {
-		const existingUser = await getUserByEmail(values.email);
+		let existingUser = (await getUserByEmail(values.email)) || (await getUserByPendingEmail(values.email));
 
 		if (existingUser && existingUser.id !== user.id) {
 			return { error: "Email already in use!" };
@@ -44,6 +45,13 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
 
 		const verificationToken = await generateVerificationToken(values.email);
 		await sendVerificationEmail(verificationToken.email, verificationToken.token);
+
+		await db.user.update({
+			where: { id: user.id },
+			data: {
+				pendingEmail: verificationToken.email,
+			},
+		});
 
 		return { success: "Verification email sent!" };
 	}
@@ -76,6 +84,8 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
 			role: updatedUser.role,
 		},
 	});
+
+	revalidatePath("/");
 
 	return { success: "Settings updated!" };
 };
