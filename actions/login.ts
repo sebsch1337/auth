@@ -2,6 +2,7 @@
 
 import * as z from "zod";
 import { AuthError } from "next-auth";
+import bcrypt from "bcryptjs";
 
 import { signIn } from "@/auth";
 
@@ -41,6 +42,12 @@ export const login = async (values: z.infer<typeof LoginSchema>, callbackUrl?: s
 	}
 
 	if (existingUser.isTwoFactorEnabled && existingUser.email) {
+		const passwordsMatch = await bcrypt.compare(password, existingUser.password);
+
+		if (!passwordsMatch) {
+			return { error: "Invalid credentials!" };
+		}
+
 		if (code) {
 			const twoFactorToken = await getTwoFactorTokenByEmail(existingUser.email);
 
