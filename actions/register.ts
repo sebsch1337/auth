@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 import { RegisterSchema } from "@/schemas";
 
-import { getUserByEmail } from "@/data/user";
+import { getUserByEmail, getUserByPendingEmail } from "@/data/user";
 
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/mail";
@@ -22,7 +22,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
 	const { email, password, name } = validatedFields.data;
 	const hashedPassword = await bcrypt.hash(password, 10);
 
-	const existingUser = await getUserByEmail(email);
+	const existingUser = (await getUserByEmail(email)) || (await getUserByPendingEmail(email));
 
 	if (existingUser) {
 		return { error: "Email already in use!" };
